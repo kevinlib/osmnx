@@ -22,7 +22,7 @@ from .utils import log
 
 def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''):
     """
-    Parse the Overpass QL query based on the list of tags.
+    Parse the Overpass QL query based on the dict/list of tags.
 
     Parameters
     ----------
@@ -324,9 +324,10 @@ def create_poi_gdf(polygon=None, tags=None, north=None, south=None, east=None, w
     ----------
     polygon : shapely Polygon or MultiPolygon
         geographic shape to fetch the POIs within
-    amenities: list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
     north : float
         northern latitude of bounding box
     south : float
@@ -405,9 +406,10 @@ def pois_from_point(point, distance=None, tags=None):
         a lat-long point
     distance : numeric
         distance in meters
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
 
     Returns
     -------
@@ -430,9 +432,10 @@ def pois_from_address(address, distance, tags=None):
         the address to geocode to a lat-long point
     distance : numeric
         distance in meters
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area. See available
-        amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
 
     Returns
     -------
@@ -454,9 +457,10 @@ def pois_from_polygon(polygon, tags=None):
     ----------
     polygon : Polygon
         Polygon where the POIs are search from.
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
 
     Returns
     -------
@@ -474,9 +478,10 @@ def pois_from_place(place, tags=None, which_result=1):
     ----------
     place : string
         the query to geocode to get geojson boundary polygon.
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
     which_result : int
         max number of place geocoding results to return and which to process upon receipt
 
