@@ -54,16 +54,16 @@ def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''
                 f'(relation["{k}"]'
                 f'({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););')
 
-        else:
-            if isinstance(v, list):
-                if len(v) == 1:
-                    v = v[0]
-                elif len(v) > 1:
-                    v = '|'.join(v)
+            else:
+                if isinstance(v, list):
+                    if len(v) == 1:
+                        v = v[0]
+                    elif len(v) > 1:
+                        v = '|'.join(v)
 
-            q = (f'((node["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
-            f'(way["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
-            f'(relation["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););')
+                q = (f'((node["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                f'(way["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                f'(relation["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););')
 
             all_keys.append(q)
 
