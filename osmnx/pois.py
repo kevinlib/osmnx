@@ -43,29 +43,34 @@ def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''
     """
     if tags and isinstance(tags, dict):
         # Overpass QL template
-
         start = (f'[out:json][timeout:{timeout}]{maxsize};')
         all_keys = []
         for k,v in tags.items():
+            print(k)
+            print(v)
+
             if not v: # if v is empty
                 q = (f'((node["{k}"]({south:.6f},'
                       f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
                       f'(way["{k}"]({south:.6f},'
                       f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
                       f'(relation["{k}"]'
-                      f'({south:.6f},{west:.6f},{north:.6f},{east:.6f});')
+                      f'({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););')
+
+
             else:
                 if isinstance(v, list) and len(v) > 1:
                     v = '|'.join(v)
-                q = (f'((node["{k}"~"{v}"]({south:.6f},'
-                     f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
-                     f'(way["{k}"~"{v}"]({south:.6f},'
-                     f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
-                     f'(relation["{k}"~"{v}"]'
-                     f'({south:.6f},{west:.6f},{north:.6f},{east:.6f});')
+
+
+                q = (f'((node["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                     f'(way["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                     f'(relation["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););')
+
             all_keys.append(q)
+
         query_str = ''.join(all_keys)
-        end = ('(._;>;);););out;')
+        end = ('out;')
         query_str = start + query_str + end
 
     elif tags and isinstance(tags, list):
