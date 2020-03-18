@@ -43,7 +43,7 @@ def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''
 	"""
 	if tags and isinstance(tags, dict):
 		# Overpass QL template
-		start = (f'[out:json][timeout:{timeout}]{maxsize};')
+		start = (f'[out:json][timeout:{timeout}]{maxsize};(')
 		all_keys = []
 		for k,v in tags.items():
 			if not v: # if v is empty
@@ -68,7 +68,7 @@ def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''
 			all_keys.append(q)
 
 		query_str = ''.join(all_keys)
-		end = ('out;')
+		end = (');out;')
 		query_str = start + query_str + end
 
 	elif tags and isinstance(tags, list):
