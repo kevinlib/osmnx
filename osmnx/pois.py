@@ -20,51 +20,80 @@ from .geo_utils import geocode, bbox_to_poly
 from .utils import log
 
 
-def parse_poi_query(north, south, east, west, amenities=None, timeout=180, maxsize=''):
+def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''):
     """
-    Parse the Overpass QL query based on the list of amenities.
+    Parse the Overpass QL query based on the dict/list of tags.
 
     Parameters
     ----------
 
     north : float
-        Northernmost coordinate from bounding box of the search area.
+    Northernmost coordinate from bounding box of the search area.
     south : float
-        Southernmost coordinate from bounding box of the search area.
+    Southernmost coordinate from bounding box of the search area.
     east : float
-        Easternmost coordinate from bounding box of the search area.
+    Easternmost coordinate from bounding box of the search area.
     west : float
-        Westernmost coordinate of the bounding box of the search area.
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
+    Westernmost coordinate of the bounding box of the search area.
+    tags : dict, list, None
+    Dictionary of tags that will be used for finding the POIs from the selected area.
+    tags default to amenities if list
     timeout : int
-        Timeout for the API request.
+    Timeout for the API request.
     """
-    if amenities:
+    if tags and isinstance(tags, dict):
         # Overpass QL template
+        start = (f'[out:json][timeout:{timeout}]{maxsize};(')
+        all_keys = []
+        for k,v in tags.items():
+            if not v: # if v is empty
+                q = (f'((node["{k}"]({south:.6f},'
+                f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                f'(way["{k}"]({south:.6f},'
+                f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                f'(relation["{k}"]'
+                f'({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););')
+
+            else:
+                if isinstance(v, list):
+                    if len(v) == 1:
+                        v = v[0]
+                    elif len(v) > 1:
+                        v = '|'.join(v)
+
+                q = (f'((node["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                f'(way["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;););'
+                f'(relation["{k}"~"{v}"]({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););')
+
+            all_keys.append(q)
+
+        query_str = ''.join(all_keys)
+        end = (');out;')
+        query_str = start + query_str + end
+
+    elif tags and isinstance(tags, list):
         query_template = ('[out:json][timeout:{timeout}]{maxsize};((node["amenity"~"{amenities}"]({south:.6f},'
-                          '{west:.6f},{north:.6f},{east:.6f});(._;>;););(way["amenity"~"{amenities}"]({south:.6f},'
-                          '{west:.6f},{north:.6f},{east:.6f});(._;>;););(relation["amenity"~"{amenities}"]'
-                          '({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););out;')
+        '{west:.6f},{north:.6f},{east:.6f});(._;>;););(way["amenity"~"{amenities}"]({south:.6f},'
+        '{west:.6f},{north:.6f},{east:.6f});(._;>;););(relation["amenity"~"{amenities}"]'
+        '({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););out;')
 
         # Parse amenties
-        query_str = query_template.format(amenities="|".join(amenities), north=north, south=south, east=east, west=west,
-                                          timeout=timeout, maxsize=maxsize)
+        query_str = query_template.format(amenities="|".join(tags), north=north, south=south, east=east, west=west,
+        timeout=timeout, maxsize=maxsize)
     else:
         # Overpass QL template
         query_template = ('[out:json][timeout:{timeout}]{maxsize};((node["amenity"]({south:.6f},'
-                          '{west:.6f},{north:.6f},{east:.6f});(._;>;););(way["amenity"]({south:.6f},'
-                          '{west:.6f},{north:.6f},{east:.6f});(._;>;););(relation["amenity"]'
-                          '({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););out;')
+        '{west:.6f},{north:.6f},{east:.6f});(._;>;););(way["amenity"]({south:.6f},'
+        '{west:.6f},{north:.6f},{east:.6f});(._;>;););(relation["amenity"]'
+        '({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););out;')
 
         # Parse amenties
         query_str = query_template.format(north=north, south=south, east=east, west=west,
-                                          timeout=timeout, maxsize=maxsize)
-
+        timeout=timeout, maxsize=maxsize)
     return query_str
 
 
-def osm_poi_download(polygon=None, amenities=None, north=None, south=None, east=None, west=None,
+def osm_poi_download(polygon=None, tags=None, north=None, south=None, east=None, west=None,
                      timeout=180, max_query_area_size=50*1000*50*1000):
     """
     Get points of interests (POIs) from OpenStreetMap based on selected amenity types.
@@ -75,8 +104,8 @@ def osm_poi_download(polygon=None, amenities=None, north=None, south=None, east=
     ----------
     poly : shapely.geometry.Polygon
         Polygon that will be used to limit the POI search.
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
+    tags : dict, list
+        Dict/list of tags that will be used for finding the POIs from the selected area.
 
     Returns
     -------
@@ -89,7 +118,7 @@ def osm_poi_download(polygon=None, amenities=None, north=None, south=None, east=
         west, south, east, north = polygon.bounds
 
         # Parse the Overpass QL query
-        query = parse_poi_query(amenities=amenities, west=west, south=south, east=east, north=north)
+        query = parse_poi_query(tags=tags, west=west, south=south, east=east, north=north)
 
     elif not (north is None or south is None or east is None or west is None):
         # TODO: Add functionality for subdividing search area geometry based on max_query_area_size
@@ -97,7 +126,7 @@ def osm_poi_download(polygon=None, amenities=None, north=None, south=None, east=
         #polygon = bbox_to_poly(north=north, south=south, east=east, west=west)
 
         # Parse the Overpass QL query
-        query = parse_poi_query(amenities=amenities, west=west, south=south, east=east, north=north)
+        query = parse_poi_query(tags=tags, west=west, south=south, east=east, north=north)
 
     else:
         raise ValueError('You must pass a polygon or north, south, east, and west')
@@ -287,7 +316,7 @@ def parse_osm_relations(relations, osm_way_df):
     return osm_way_df
 
 
-def create_poi_gdf(polygon=None, amenities=None, north=None, south=None, east=None, west=None):
+def create_poi_gdf(polygon=None, tags=None, north=None, south=None, east=None, west=None):
     """
     Parse GeoDataFrames from POI json that was returned by Overpass API.
 
@@ -295,9 +324,10 @@ def create_poi_gdf(polygon=None, amenities=None, north=None, south=None, east=No
     ----------
     polygon : shapely Polygon or MultiPolygon
         geographic shape to fetch the POIs within
-    amenities: list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
     north : float
         northern latitude of bounding box
     south : float
@@ -312,7 +342,7 @@ def create_poi_gdf(polygon=None, amenities=None, north=None, south=None, east=No
     Geopandas GeoDataFrame with POIs and the associated attributes.
     """
 
-    responses = osm_poi_download(polygon=polygon, amenities=amenities, north=north, south=south, east=east, west=west)
+    responses = osm_poi_download(polygon=polygon, tags=tags, north=north, south=south, east=east, west=west)
 
     # Parse coordinates from all the nodes in the response
     coords = parse_nodes_coords(responses)
@@ -365,7 +395,7 @@ def create_poi_gdf(polygon=None, amenities=None, north=None, south=None, east=No
     return gdf
 
 
-def pois_from_point(point, distance=None, amenities=None):
+def pois_from_point(point, distance=None, tags=None):
     """
     Get point of interests (POIs) within some distance north, south, east, and west of
     a lat-long point.
@@ -376,9 +406,10 @@ def pois_from_point(point, distance=None, amenities=None):
         a lat-long point
     distance : numeric
         distance in meters
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
 
     Returns
     -------
@@ -387,10 +418,10 @@ def pois_from_point(point, distance=None, amenities=None):
 
     bbox = bbox_from_point(point=point, distance=distance)
     north, south, east, west = bbox
-    return create_poi_gdf(amenities=amenities, north=north, south=south, east=east, west=west)
+    return create_poi_gdf(tags=tags, north=north, south=south, east=east, west=west)
 
 
-def pois_from_address(address, distance, amenities=None):
+def pois_from_address(address, distance, tags=None):
     """
     Get OSM points of Interests within some distance north, south, east, and west of
     an address.
@@ -401,9 +432,10 @@ def pois_from_address(address, distance, amenities=None):
         the address to geocode to a lat-long point
     distance : numeric
         distance in meters
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area. See available
-        amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
 
     Returns
     -------
@@ -414,10 +446,10 @@ def pois_from_address(address, distance, amenities=None):
     point = geocode(query=address)
 
     # get POIs within distance of this point
-    return pois_from_point(point=point, amenities=amenities, distance=distance)
+    return pois_from_point(point=point, tags=tags, distance=distance)
 
 
-def pois_from_polygon(polygon, amenities=None):
+def pois_from_polygon(polygon, tags=None):
     """
     Get OSM points of interest within some polygon.
 
@@ -425,19 +457,20 @@ def pois_from_polygon(polygon, amenities=None):
     ----------
     polygon : Polygon
         Polygon where the POIs are search from.
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
 
     Returns
     -------
     GeoDataFrame
     """
 
-    return create_poi_gdf(polygon=polygon, amenities=amenities)
+    return create_poi_gdf(polygon=polygon, tags=tags)
 
 
-def pois_from_place(place, amenities=None, which_result=1):
+def pois_from_place(place, tags=None, which_result=1):
     """
     Get points of interest (POIs) within the boundaries of some place.
 
@@ -445,9 +478,10 @@ def pois_from_place(place, amenities=None, which_result=1):
     ----------
     place : string
         the query to geocode to get geojson boundary polygon.
-    amenities : list
-        List of amenities that will be used for finding the POIs from the selected area.
-        See available amenities from: http://wiki.openstreetmap.org/wiki/Key:amenity
+    tags: dict/list
+        dictionary of tags that will be used for finding the POIs from the selected area.
+        optional: list of amenities (key=amenity)
+        See available tags from: http://wiki.openstreetmap.org/wiki/Tags
     which_result : int
         max number of place geocoding results to return and which to process upon receipt
 
@@ -458,4 +492,4 @@ def pois_from_place(place, amenities=None, which_result=1):
 
     city = gdf_from_place(place, which_result=which_result)
     polygon = city['geometry'].iloc[0]
-    return create_poi_gdf(polygon=polygon, amenities=amenities)
+    return create_poi_gdf(polygon=polygon, tags=tags)
