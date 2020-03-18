@@ -54,34 +54,28 @@ def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''
                       f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
                       f'(relation["{k}"]'
                       f'({south:.6f},{west:.6f},{north:.6f},{east:.6f});')
-
-
             else:
                 if isinstance(v, list) and len(v) > 1:
                     v = '|'.join(v)
-
-
                 q = (f'((node["{k}"~"{v}"]({south:.6f},'
                      f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
                      f'(way["{k}"~"{v}"]({south:.6f},'
                      f'{west:.6f},{north:.6f},{east:.6f});(._;>;););'
                      f'(relation["{k}"~"{v}"]'
                      f'({south:.6f},{west:.6f},{north:.6f},{east:.6f});')
-
             all_keys.append(q)
-
         query_str = ''.join(all_keys)
         end = ('(._;>;);););out;')
         query_str = start + query_str + end
 
-    if tags and isinstance(tags, list):
+    elif tags and isinstance(tags, list):
         query_template = ('[out:json][timeout:{timeout}]{maxsize};((node["amenity"~"{amenities}"]({south:.6f},'
                           '{west:.6f},{north:.6f},{east:.6f});(._;>;););(way["amenity"~"{amenities}"]({south:.6f},'
                           '{west:.6f},{north:.6f},{east:.6f});(._;>;););(relation["amenity"~"{amenities}"]'
                           '({south:.6f},{west:.6f},{north:.6f},{east:.6f});(._;>;);););out;')
 
         # Parse amenties
-        query_str = query_template.format(amenities="|".join(amenities), north=north, south=south, east=east, west=west,
+        query_str = query_template.format(amenities="|".join(tags), north=north, south=south, east=east, west=west,
                                           timeout=timeout, maxsize=maxsize)
     else:
         # Overpass QL template
@@ -93,7 +87,6 @@ def parse_poi_query(north, south, east, west, tags=None, timeout=180, maxsize=''
         # Parse amenties
         query_str = query_template.format(north=north, south=south, east=east, west=west,
                                           timeout=timeout, maxsize=maxsize)
-
     return query_str
 
 
